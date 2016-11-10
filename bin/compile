@@ -8,6 +8,8 @@ BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
+echo "Rebuilding"
+
 if [ -f "$ENV_DIR/WKHTMLTOPDF_URL" ]; then
   DOWNLOAD_URL=$(cat $ENV_DIR/WKHTMLTOPDF_URL)
 else
@@ -54,3 +56,7 @@ if [ ! -f "$CACHE_DIR/$PACKAGE" ]; then
 fi
 
 cp $CACHE_DIR/wkhtmltox/bin/* $BUILD_DIR/bin/
+
+# Add wkhtmltopdf binaries to the PATH
+mkdir -p /app/.profile.d
+echo 'PATH=$PATH:/app/bin' > $BUILD_DIR/.profile.d/heroku-buildpack-wkhtmltopdf-path.sh

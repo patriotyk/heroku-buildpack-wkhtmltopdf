@@ -1,6 +1,6 @@
 # Heroku Buildpack: wkhtmltopdf
 
-Downloads wkhtmlto* binaries, verifies, then copies bin/
+Downloads wkhtmlto* binaries, verifies, then makes them available in the $PATH.
 
 ## Tested against following
 
@@ -9,14 +9,15 @@ Downloads wkhtmlto* binaries, verifies, then copies bin/
 ## Usage
 
 ```
-$ heroku buildpacks:set https://github.com/issueapp/heroku-buildpack-wkhtmltopdf
+$ heroku buildpacks:add https://github.com/nexto/heroku-buildpack-wkhtmltopdf
 
 $ heroku config:set WKHTMLTOPDF_URL=http://download.gna.org/wkhtmltopdf/0.12/0.12.3/{wkhtmltox-0.12.3_linux-generic-amd64.tar.xz,SHA1SUMS}
 
 $ git commit --allow-empty
 $ git push heroku
 
-$ heroku run bin/wkhtmltopdf -V
+$ heroku run wkhtmltopdf -V
+$ heroku which wkhtmltopdf
 
 # profit!
 ```
