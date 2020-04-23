@@ -1,38 +1,55 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir>
 
-indent() {
-  sed -u 's/^/       /'
-}
+set -e
 
 BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
-echo "Rebuilding"
+BIN_PATH="$BUILD_DIR/bin"
+LIB_PATH="$BUILD_DIR/vendor/wkhtmltox/lib"
+TMP_PATH="$BUILD_DIR/tmp"
+mkdir -p $CACHE_DIR $BIN_PATH $LIB_PATH $TMP_PATH
 
-if [ -f "$ENV_DIR/WKHTMLTOPDF_URL" ]; then
-  DOWNLOAD_URL=$(cat $ENV_DIR/WKHTMLTOPDF_URL)
+if [[ -f "$ENV_DIR/WKHTMLTOPDF_DOWNLOAD_URL" ]]; then
+  WKHTMLTOPDF_DOWNLOAD_URL=$(cat "$ENV_DIR/WKHTMLTOPDF_DOWNLOAD_URL")
 else
-  DOWNLOAD_URL="https://github.com/wkhtmltopdf/wkhtmltopdf/archive/0.12.5.tar.gz"
+  WKHTMLTOPDF_DOWNLOAD_URL="https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.bionic_amd64.deb"
 fi
 
-PACKAGE=${DOWNLOAD_URL##*/}
+WKHTMLTOPDF_DEB="$CACHE_DIR/wkhtmltox.deb"
+WKHTMLTOPDF_PATH="$TMP_PATH/usr/local"
+WKHTMLTOPDF_BINARIES="$WKHTMLTOPDF_PATH/bin"
+WKHTMLTOPDF_LIBS="$WKHTMLTOPDF_PATH/lib"
 
-download="curl -sLO"
-extract="tar x -C $CACHE_DIR -f"
-install=""
+BIN_DIR=$(cd $(dirname $0); pwd)
+FONTS_DIR=$(cd "$BIN_DIR/../fonts"; pwd)
 
-mkdir -p $BUILD_DIR/bin
-
-if [ ! -f "$CACHE_DIR/$PACKAGE" ]; then
-  echo "downloading $DOWNLOAD_URL" | indent
-  $download $DOWNLOAD_URL
-
-  $extract $CACHE_DIR/$PACKAGE
+if [ -f $WKHTMLTOPDF_DEB ]; then
+  echo "-----> Using wkhtmltopdf from cache"
+else
+  echo "-----> Downloading wkhtmltopdf deb"
+  curl -L $WKHTMLTOPDF_DOWNLOAD_URL -o $WKHTMLTOPDF_DEB
 fi
 
-cp $CACHE_DIR/wkhtmltox/bin/* $BUILD_DIR/bin/
+echo "-----> Unpacking deb"
+dpkg -x $WKHTMLTOPDF_DEB $TMP_PATH
 
-# Add wkhtmltopdf binaries to the PATH
-mkdir -p /app/.profile.d
-echo 'PATH=$PATH:/app/bin' > $BUILD_DIR/.profile.d/heroku-buildpack-wkhtmltopdf-path.sh
+echo "-----> Setting permissions"
+chmod +x $WKHTMLTOPDF_BINARIES/*
+
+echo "-----> Moving binaries to the right place"
+mv $WKHTMLTOPDF_BINARIES/* $BIN_PATH/
+
+echo "-----> Moving libs to the right place"
+mv $WKHTMLTOPDF_LIBS/* $LIB_PATH/
+
+echo "-----> Cleaning up"
+rm -rf $WKHTMLTOPDF_PATH
+
+echo "-----> Installing fonts"
+mkdir -p $1/.fonts
+ls $FONTS_DIR
+cp $FONTS_DIR/* $1/.fonts/
+fc-cache -f $1/.fonts
